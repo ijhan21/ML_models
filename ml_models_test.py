@@ -33,20 +33,11 @@ X_train, X_valid, y_train, y_valid = train_test_split(X, y, random_state=0, stra
 # D_train = xgb.DMatrix(X_train, y_train)
 # D_valid = xgb.DMatrix(X_valid, y_valid)
 
-num_boost_round = 400
-plotting = Plotting(num_boost_round)
+num_boost_round = 10000
+# plotting = Plotting(num_boost_round)
 lr_scheduler = CustomLearningRate()
 # Pass it to the `callbacks` parameter as a list.
-model = xgb.XGBClassifier(gpu_id=-1, n_estimators=num_boost_round)
-# model.fit(
-#     {
-#         'objective': 'binary:logistic',
-#         'eval_metric': ['error', 'rmse'],
-#         'tree_method': 'gpu_hist',   
-#     },
-#     D_train,    
-#     eval_set =[(D_train, 'Train'), (D_valid, 'Valid')],
-#     # num_boost_round=num_boost_round,
-#     callbacks=[plotting])
-model.fit(X_train, y_train,eval_set=[(X_valid, y_valid)], early_stopping_rounds=100, eval_metric=['rmse', 'auc'], callbacks=[plotting, lr_scheduler])
+model = xgb.XGBClassifier(n_estimators=num_boost_round)
+
+model.fit(X_train, y_train,eval_set=[(X_valid, y_valid)], early_stopping_rounds=400, eval_metric=['rmse', 'auc'], callbacks=[lr_scheduler], verbose=False)
 # model.fit(X_train, y_train,eval_set=[(X_valid, y_valid)],  eval_metric=['rmse', 'auc'], )

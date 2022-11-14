@@ -51,9 +51,9 @@ class Plotting(xgb.callback.TrainingCallback):
 class CustomLearningRate(xgb.callback.LearningRateScheduler):
     def __init__(self, learning_rates=0.01) -> None:
         self.lr = 0
-        def custom_learning_rate(boosting_round):
-            self.lr = 1.0 / (boosting_round + 1)
-            return 1.0 / (boosting_round + 1)
+        def custom_learning_rate(boosting_round):           
+            self.lr = 1.0 / (boosting_round + 1)*0.1
+            return 0.1 / (boosting_round + 1) 
         learning_rates_func = custom_learning_rate
         assert callable(learning_rates_func) or isinstance(
             learning_rates_func, collections.abc.Sequence
@@ -63,12 +63,27 @@ class CustomLearningRate(xgb.callback.LearningRateScheduler):
         else:
             # self.learning_rates = lambda epoch: cast(Sequence, learning_rates)[epoch]
             pass
+
         super().__init__(learning_rates = learning_rates_func)
+        self.pre_metric=0.
 
     def after_iteration(
         # self, model: _Model, epoch: int, evals_log: xgb.TrainingCallback.EvalsLog
         self, model: _Model, epoch: int, evals_log
-    ) -> bool:
-        model.set_param("learning_rate", self.learning_rates(epoch))
-        print(self.learning_rates(epoch))
+        ) -> bool:
+        for data, metric in evals_log.items():
+            for metric_name, log in reversed(metric.items()):
+                if self.pre_metric>=log[-1]:
+                    model.set_param("learning_rate", self.learning_rates(epoch))
+                    # print('down', self.pre_metric)
+                else:
+                    print('saved', log[-1])
+                    model.save_model('best_model{}.pt'.format(log[-1]))
+
+                    pass
+                self.pre_metric=log[-1]
+                
+                break
+            break
+        # False to indicate training should not stop.
         return False
